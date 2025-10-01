@@ -21,6 +21,31 @@ extension View {
     }
 }
 
+struct FlagButton: View {
+    let imageName: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    @State private var rotation = 0.0
+    @State private var selectedFlag: Int? = nil
+
+    var body: some View {
+        Button {
+            rotation += 360
+            action()
+        } label: {
+            Image(imageName)
+                .imageStyle()
+        }
+        .rotation3DEffect(.degrees(rotation), axis: (x: 0, y: 1, z: 0))
+        .animation(
+            .spring(response: 0.5, dampingFraction: 0.6),
+            value: rotation
+        )
+        .opacity(isSelected ? 1 : 0.1)
+    }
+}
+
 struct ContentView: View {
     @State private var countries = [
         "Estonia", "France", "Germany", "Ireland", "Italy", "Nigeria", "Poland",
@@ -28,12 +53,12 @@ struct ContentView: View {
     ].shuffled()
 
     @State private var correctAnswer = Int.random(in: 0...2)
-
     @State private var showingScore: Bool = false
     @State private var gameEnd: Bool = false
     @State private var scoreTitle: String = ""
     @State private var correctCount: Int = 0
     @State private var wrongCount: Int = 0
+    @State private var selectedFlag: Int? = nil
 
     var body: some View {
         ZStack {
@@ -71,14 +96,14 @@ struct ContentView: View {
                             .font(.largeTitle.weight(.semibold))
                     }
 
-                    ForEach(0..<3) { number in
-                        Button {
+                    ForEach(0..<3, id: \.self) { number in
+                        FlagButton(
+                            imageName: countries[number],
+                            isSelected: selectedFlag == nil
+                                || selectedFlag == number
+                        ) {
                             flagTapped(number)
-                        } label: {
-                            Image(countries[number])
-                                .imageStyle()
                         }
-
                     }
                 }
                 .frame(maxWidth: .infinity)
@@ -131,6 +156,7 @@ struct ContentView: View {
             wrongCount += 1
         }
         showingScore = true
+        selectedFlag = number
 
         if (correctCount + wrongCount) == 8 {
             gameEnd = true
@@ -139,6 +165,7 @@ struct ContentView: View {
     }
 
     func askQuestion() {
+        selectedFlag = nil
         if (correctCount + wrongCount) < 8 {
             countries.shuffle()
             correctAnswer = Int.random(in: 0...2)
@@ -148,6 +175,7 @@ struct ContentView: View {
     func reset() {
         correctCount = 0
         wrongCount = 0
+        selectedFlag = nil
         countries.shuffle()
         correctAnswer = Int.random(in: 0...2)
     }
